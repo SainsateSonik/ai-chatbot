@@ -48,6 +48,8 @@
   /* border radius unit */
   --radius: 0.5rem;
   --sidebar: hsl(0 0% 98%);
+  --selection-foreground: hsl(0 0% 100%);
+  --selection-background: hsl(0 0% 0%);
 }
 
 /* define design tokens (dark mode) */
@@ -85,6 +87,8 @@
   --sidebar-border: hsl(240 3.7% 15.9%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
   --sidebar: hsl(240 5.9% 10%);
+  --selection-foreground: hsl(0 0% 0%);
+  --selection-background: hsl(0 0% 100%);
 }
 
 /* define theme */
@@ -157,6 +161,10 @@
   ::backdrop,
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
+  }
+  ::selection {
+    color: var(--selection-foreground);
+    background-color: var(--selection-background);
   }
 }
 

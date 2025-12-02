@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
@@ -167,6 +167,21 @@ export function Chat({
     setMessages,
   });
 
+  const handleExplainText = useCallback(
+    (text: string) => {
+      sendMessage({
+        role: "user" as const,
+        parts: [
+          {
+            type: "text",
+            text: `Please explain this: "${text}"`,
+          },
+        ],
+      });
+    },
+    [sendMessage]
+  );
+
   return (
     <>
       <div className="overscroll-behavior-contain flex h-dvh min-w-0 touch-pan-y flex-col bg-background">
@@ -181,6 +196,7 @@ export function Chat({
           isArtifactVisible={isArtifactVisible}
           isReadonly={isReadonly}
           messages={messages}
+          onExplain={handleExplainText}
           regenerate={regenerate}
           selectedModelId={initialChatModel}
           setMessages={setMessages}

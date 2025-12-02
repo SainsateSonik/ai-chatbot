@@ -19,6 +19,7 @@ type MessagesProps = {
   isReadonly: boolean;
   isArtifactVisible: boolean;
   selectedModelId: string;
+  onExplain?: (selectedText: string) => void;
 };
 
 function PureMessages({
@@ -30,6 +31,7 @@ function PureMessages({
   regenerate,
   isReadonly,
   selectedModelId: _selectedModelId,
+  onExplain,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -61,6 +63,7 @@ function PureMessages({
               isReadonly={isReadonly}
               key={message.id}
               message={message}
+              onExplain={onExplain}
               regenerate={regenerate}
               requiresScrollPadding={
                 hasSentMessage && index === messages.length - 1
@@ -117,6 +120,9 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
     return false;
   }
   if (!equal(prevProps.votes, nextProps.votes)) {
+    return false;
+  }
+  if (prevProps.onExplain !== nextProps.onExplain) {
     return false;
   }
 

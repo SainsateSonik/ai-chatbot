@@ -33,6 +33,7 @@ const PurePreviewMessage = ({
   regenerate,
   isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
+  onExplain,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -42,6 +43,7 @@ const PurePreviewMessage = ({
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  onExplain?: (selectedText: string) => void;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -134,7 +136,9 @@ const PurePreviewMessage = ({
                           : undefined
                       }
                     >
-                      <Response>{sanitizeText(part.text)}</Response>
+                      <Response onExplain={message.role === "assistant" ? onExplain : undefined}>
+                        {sanitizeText(part.text)}
+                      </Response>
                     </MessageContent>
                   </div>
                 );
@@ -298,6 +302,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (!equal(prevProps.vote, nextProps.vote)) {
+      return false;
+    }
+    if (prevProps.onExplain !== nextProps.onExplain) {
       return false;
     }
 
