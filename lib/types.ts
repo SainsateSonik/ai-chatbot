@@ -14,6 +14,15 @@ export const messageMetadataSchema = z.object({
   createdAt: z.string(),
 });
 
+export const toneEnums = z.enum([
+  "friendly",
+  "professional",
+  "technical",
+  "creative",
+]);
+
+export type ToneId = z.infer<typeof toneEnums>;
+
 export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 
 type weatherTool = InferUITool<typeof getWeather>;

@@ -21,7 +21,8 @@ import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { SelectItem } from "@/components/ui/select";
 import { chatModels } from "@/lib/ai/models";
-import type { Attachment, ChatMessage } from "@/lib/types";
+import { tones } from "@/lib/ai/tones";
+import type { Attachment, ChatMessage, ToneId } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
 import { Context } from "./elements/context";
@@ -38,6 +39,7 @@ import {
   ArrowUpIcon,
   ChevronDownIcon,
   CpuIcon,
+  MessageIcon,
   PaperclipIcon,
   StopIcon,
 } from "./icons";
@@ -61,6 +63,8 @@ function PureMultimodalInput({
   selectedVisibilityType,
   selectedModelId,
   onModelChange,
+  selectedToneId,
+  onToneChange,
   usage,
 }: {
   chatId: string;
@@ -77,6 +81,8 @@ function PureMultimodalInput({
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
+  selectedToneId?: ToneId;
+  onToneChange?: (toneId: ToneId) => void;
   usage?: AppUsage;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -378,6 +384,10 @@ function PureMultimodalInput({
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}
             />
+            <ToneSelectorCompact
+              onToneChange={onToneChange}
+              selectedToneId={selectedToneId}
+            />
           </PromptInputTools>
 
           {status === "submitted" ? (
@@ -414,6 +424,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.selectedModelId !== nextProps.selectedModelId) {
+      return false;
+    }
+    if (prevProps.selectedToneId !== nextProps.selectedToneId) {
       return false;
     }
 
@@ -507,6 +520,63 @@ function PureModelSelectorCompact({
 }
 
 const ModelSelectorCompact = memo(PureModelSelectorCompact);
+
+function PureToneSelectorCompact({
+  selectedToneId,
+  onToneChange,
+}: {
+  selectedToneId?: ToneId;
+  onToneChange?: (toneId: ToneId) => void;
+}) {
+  const [optimisticToneId, setOptimisticToneId] = useState(
+    selectedToneId || "professional"
+  );
+
+  useEffect(() => {
+    if (selectedToneId) {
+      setOptimisticToneId(selectedToneId);
+    }
+  }, [selectedToneId]);
+
+  const selectedTone = tones.find((tone) => tone.id === optimisticToneId);
+
+  return (
+    <PromptInputModelSelect
+      onValueChange={(toneName) => {
+        const tone = tones.find((t) => t.name === toneName);
+        if (tone) {
+          setOptimisticToneId(tone.id);
+          onToneChange?.(tone.id);
+        }
+      }}
+      value={selectedTone?.name}
+    >
+      <Trigger asChild>
+        <Button className="h-8 px-2" variant="ghost">
+          <MessageIcon size={16} />
+          <span className="hidden font-medium text-xs sm:block">
+            {selectedTone?.name}
+          </span>
+          <ChevronDownIcon size={16} />
+        </Button>
+      </Trigger>
+      <PromptInputModelSelectContent className="min-w-[260px] p-0">
+        <div className="flex flex-col gap-px">
+          {tones.map((tone) => (
+            <SelectItem key={tone.id} value={tone.name}>
+              <div className="truncate font-medium text-xs">{tone.name}</div>
+              <div className="mt-px truncate text-[10px] text-muted-foreground leading-tight">
+                {tone.description}
+              </div>
+            </SelectItem>
+          ))}
+        </div>
+      </PromptInputModelSelectContent>
+    </PromptInputModelSelect>
+  );
+}
+
+const ToneSelectorCompact = memo(PureToneSelectorCompact);
 
 function PureStopButton({
   stop,

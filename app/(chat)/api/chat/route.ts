@@ -39,7 +39,7 @@ import {
 } from "@/lib/db/queries";
 import type { DBMessage } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, ToneId } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -100,11 +100,13 @@ export async function POST(request: Request) {
       id,
       message,
       selectedChatModel,
+      selectedToneId,
       selectedVisibilityType,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel["id"];
+      selectedToneId: ToneId;
       selectedVisibilityType: VisibilityType;
     } = requestBody;
 
@@ -181,7 +183,11 @@ export async function POST(request: Request) {
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: systemPrompt({
+            selectedChatModel,
+            requestHints,
+            selectedToneId,
+          }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:

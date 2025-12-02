@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { toneEnums } from "@/lib/types";
 
 const textPartSchema = z.object({
   type: z.enum(["text"]),
@@ -22,6 +23,7 @@ export const postRequestBodySchema = z.object({
     parts: z.array(partSchema),
   }),
   selectedChatModel: z.enum(["chat-model", "chat-model-reasoning"]),
+  selectedToneId: toneEnums.default("friendly"),
   selectedVisibilityType: z.enum(["public", "private"]),
 });
 

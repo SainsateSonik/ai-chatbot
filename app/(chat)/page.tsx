@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Chat } from "@/components/chat";
 import { DataStreamHandler } from "@/components/data-stream-handler";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import { DEFAULT_TONE } from "@/lib/ai/tones";
 import { generateUUID } from "@/lib/utils";
 import { auth } from "../(auth)/auth";
 
@@ -34,6 +35,7 @@ async function NewChatPage() {
           autoResume={false}
           id={id}
           initialChatModel={DEFAULT_CHAT_MODEL}
+          initialChatTone={DEFAULT_TONE}
           initialMessages={[]}
           initialVisibilityType="private"
           isReadonly={false}
@@ -50,6 +52,7 @@ async function NewChatPage() {
         autoResume={false}
         id={id}
         initialChatModel={modelIdFromCookie.value}
+        initialChatTone={DEFAULT_TONE}
         initialMessages={[]}
         initialVisibilityType="private"
         isReadonly={false}

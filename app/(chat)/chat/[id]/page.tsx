@@ -6,6 +6,7 @@ import { auth } from "@/app/(auth)/auth";
 import { Chat } from "@/components/chat";
 import { DataStreamHandler } from "@/components/data-stream-handler";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import { DEFAULT_TONE } from "@/lib/ai/tones";
 import { getChatById, getMessagesByChatId } from "@/lib/db/queries";
 import { convertToUIMessages } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
           autoResume={true}
           id={chat.id}
           initialChatModel={DEFAULT_CHAT_MODEL}
+          initialChatTone={DEFAULT_TONE}
           initialLastContext={chat.lastContext ?? undefined}
           initialMessages={uiMessages}
           initialVisibilityType={chat.visibility}
@@ -73,6 +75,7 @@ async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
         autoResume={true}
         id={chat.id}
         initialChatModel={chatModelFromCookie.value}
+        initialChatTone={DEFAULT_TONE}
         initialLastContext={chat.lastContext ?? undefined}
         initialMessages={uiMessages}
         initialVisibilityType={chat.visibility}

@@ -1,5 +1,6 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/artifact";
+import type { ToneId } from "@/lib/types";
 
 export const artifactsPrompt = `
 Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
@@ -32,9 +33,6 @@ This is a guide for using artifacts tools: \`createDocument\` and \`updateDocume
 Do not update document right after creating it. Wait for user feedback or request to update it.
 `;
 
-export const regularPrompt =
-  "You are a friendly assistant! Keep your responses concise and helpful.";
-
 export type RequestHints = {
   latitude: Geo["latitude"];
   longitude: Geo["longitude"];
@@ -50,20 +48,38 @@ About the origin of user's request:
 - country: ${requestHints.country}
 `;
 
+export const getToneInstruction = (toneId: ToneId) => {
+  const toneInstructions: Record<ToneId, string> = {
+    professional:
+      "Maintain a formal, business-like yet concise tone in your responses. Use professional language and structure your answers clearly.",
+    friendly:
+      "Be warm, conversational, approachable and concise in your responses. Use a casual yet respectful tone.",
+    creative:
+      "Be imaginative, expressive and concise in your responses. Feel free to use vivid language, metaphors, and creative approaches.",
+    technical:
+      "Use precise technical language and terminology. Focus on accuracy and technical depth in your explanations.",
+  };
+
+  return `Response Tone: ${toneInstructions[toneId]}`;
+};
+
 export const systemPrompt = ({
   selectedChatModel,
   requestHints,
+  selectedToneId = "friendly",
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  selectedToneId: ToneId;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
+  const toneInstruction = getToneInstruction(selectedToneId);
 
   if (selectedChatModel === "chat-model-reasoning") {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${toneInstruction}\n\n${requestPrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+  return `${toneInstruction}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
 };
 
 export const codePrompt = `

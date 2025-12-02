@@ -22,7 +22,7 @@ import { useAutoResume } from "@/hooks/use-auto-resume";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import type { Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
-import type { Attachment, ChatMessage } from "@/lib/types";
+import type { Attachment, ChatMessage, ToneId } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -37,6 +37,7 @@ export function Chat({
   id,
   initialMessages,
   initialChatModel,
+  initialChatTone,
   initialVisibilityType,
   isReadonly,
   autoResume,
@@ -45,6 +46,7 @@ export function Chat({
   id: string;
   initialMessages: ChatMessage[];
   initialChatModel: string;
+  initialChatTone: ToneId;
   initialVisibilityType: VisibilityType;
   isReadonly: boolean;
   autoResume: boolean;
@@ -75,11 +77,17 @@ export function Chat({
   const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
+  const [currentToneId, setCurrentToneId] = useState(initialChatTone);
   const currentModelIdRef = useRef(currentModelId);
+  const currentToneIdRef = useRef(currentToneId);
 
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  useEffect(() => {
+    currentToneIdRef.current = currentToneId;
+  }, [currentToneId]);
 
   const {
     messages,
@@ -103,6 +111,7 @@ export function Chat({
             id: request.id,
             message: request.messages.at(-1),
             selectedChatModel: currentModelIdRef.current,
+            selectedToneId: currentToneIdRef.current,
             selectedVisibilityType: visibilityType,
             ...request.body,
           },
@@ -212,7 +221,9 @@ export function Chat({
               input={input}
               messages={messages}
               onModelChange={setCurrentModelId}
+              onToneChange={setCurrentToneId}
               selectedModelId={currentModelId}
+              selectedToneId={currentToneId}
               selectedVisibilityType={visibilityType}
               sendMessage={sendMessage}
               setAttachments={setAttachments}
