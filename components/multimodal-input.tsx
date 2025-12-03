@@ -7,11 +7,13 @@ import equal from "fast-deep-equal";
 import {
   type ChangeEvent,
   type Dispatch,
+  forwardRef,
   memo,
   type SetStateAction,
   startTransition,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -48,365 +50,384 @@ import { SuggestedActions } from "./suggested-actions";
 import { Button } from "./ui/button";
 import type { VisibilityType } from "./visibility-selector";
 
-function PureMultimodalInput({
-  chatId,
-  input,
-  setInput,
-  status,
-  stop,
-  attachments,
-  setAttachments,
-  messages,
-  setMessages,
-  sendMessage,
-  className,
-  selectedVisibilityType,
-  selectedModelId,
-  onModelChange,
-  selectedToneId,
-  onToneChange,
-  usage,
-}: {
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
-  stop: () => void;
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: UIMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  className?: string;
-  selectedVisibilityType: VisibilityType;
-  selectedModelId: string;
-  onModelChange?: (modelId: string) => void;
-  selectedToneId?: ToneId;
-  onToneChange?: (toneId: ToneId) => void;
-  usage?: AppUsage;
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { width } = useWindowSize();
+export type MultimodalInputHandle = {
+  focus: () => void;
+};
 
-  const adjustHeight = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "44px";
-    }
-  }, []);
+const PureMultimodalInput = forwardRef<
+  MultimodalInputHandle,
+  {
+    chatId: string;
+    input: string;
+    setInput: Dispatch<SetStateAction<string>>;
+    status: UseChatHelpers<ChatMessage>["status"];
+    stop: () => void;
+    attachments: Attachment[];
+    setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+    messages: UIMessage[];
+    setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+    sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+    className?: string;
+    selectedVisibilityType: VisibilityType;
+    selectedModelId: string;
+    onModelChange?: (modelId: string) => void;
+    selectedToneId?: ToneId;
+    onToneChange?: (toneId: ToneId) => void;
+    usage?: AppUsage;
+  }
+>(
+  (
+    {
+      chatId,
+      input,
+      setInput,
+      status,
+      stop,
+      attachments,
+      setAttachments,
+      messages,
+      setMessages,
+      sendMessage,
+      className,
+      selectedVisibilityType,
+      selectedModelId,
+      onModelChange,
+      selectedToneId,
+      onToneChange,
+      usage,
+    },
+    ref
+  ) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      adjustHeight();
-    }
-  }, [adjustHeight]);
+    useImperativeHandle(
+      ref,
+      () => ({ focus: () => textareaRef.current?.focus() }),
+      []
+    );
 
-  const resetHeight = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "44px";
-    }
-  }, []);
+    const { width } = useWindowSize();
 
-  const [localStorageInput, setLocalStorageInput] = useLocalStorage(
-    "input",
-    ""
-  );
+    const adjustHeight = useCallback(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "44px";
+      }
+    }, []);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      const domValue = textareaRef.current.value;
-      // Prefer DOM value over localStorage to handle hydration
-      const finalValue = domValue || localStorageInput || "";
-      setInput(finalValue);
-      adjustHeight();
-    }
-    // Only run once after hydration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adjustHeight, localStorageInput, setInput]);
+    useEffect(() => {
+      if (textareaRef.current) {
+        adjustHeight();
+      }
+    }, [adjustHeight]);
 
-  useEffect(() => {
-    setLocalStorageInput(input);
-  }, [input, setLocalStorageInput]);
+    const resetHeight = useCallback(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "44px";
+      }
+    }, []);
 
-  const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(event.target.value);
-  };
+    const [localStorageInput, setLocalStorageInput] = useLocalStorage(
+      "input",
+      ""
+    );
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadQueue, setUploadQueue] = useState<string[]>([]);
+    useEffect(() => {
+      if (textareaRef.current) {
+        const domValue = textareaRef.current.value;
+        // Prefer DOM value over localStorage to handle hydration
+        const finalValue = domValue || localStorageInput || "";
+        setInput(finalValue);
+        adjustHeight();
+      }
+      // Only run once after hydration
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [adjustHeight, localStorageInput, setInput]);
 
-  const submitForm = useCallback(() => {
-    window.history.pushState({}, "", `/chat/${chatId}`);
+    useEffect(() => {
+      setLocalStorageInput(input);
+    }, [input, setLocalStorageInput]);
 
-    sendMessage({
-      role: "user",
-      parts: [
-        ...attachments.map((attachment) => ({
-          type: "file" as const,
-          url: attachment.url,
-          name: attachment.name,
-          mediaType: attachment.contentType,
-        })),
-        {
-          type: "text",
-          text: input,
-        },
-      ],
-    });
+    const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setInput(event.target.value);
+    };
 
-    setAttachments([]);
-    setLocalStorageInput("");
-    resetHeight();
-    setInput("");
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadQueue, setUploadQueue] = useState<string[]>([]);
 
-    if (width && width > 768) {
-      textareaRef.current?.focus();
-    }
-  }, [
-    input,
-    setInput,
-    attachments,
-    sendMessage,
-    setAttachments,
-    setLocalStorageInput,
-    width,
-    chatId,
-    resetHeight,
-  ]);
+    const submitForm = useCallback(() => {
+      window.history.pushState({}, "", `/chat/${chatId}`);
 
-  const uploadFile = useCallback(async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/files/upload", {
-        method: "POST",
-        body: formData,
+      sendMessage({
+        role: "user",
+        parts: [
+          ...attachments.map((attachment) => ({
+            type: "file" as const,
+            url: attachment.url,
+            name: attachment.name,
+            mediaType: attachment.contentType,
+          })),
+          {
+            type: "text",
+            text: input,
+          },
+        ],
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const { url, pathname, contentType } = data;
+      setAttachments([]);
+      setLocalStorageInput("");
+      resetHeight();
+      setInput("");
 
-        return {
-          url,
-          name: pathname,
-          contentType,
-        };
+      if (width && width > 768) {
+        textareaRef.current?.focus();
       }
-      const { error } = await response.json();
-      toast.error(error);
-    } catch (_error) {
-      toast.error("Failed to upload file, please try again!");
-    }
-  }, []);
+    }, [
+      input,
+      setInput,
+      attachments,
+      sendMessage,
+      setAttachments,
+      setLocalStorageInput,
+      width,
+      chatId,
+      resetHeight,
+    ]);
 
-  const contextProps = useMemo(
-    () => ({
-      usage,
-    }),
-    [usage]
-  );
-
-  const handleFileChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files || []);
-
-      setUploadQueue(files.map((file) => file.name));
+    const uploadFile = useCallback(async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file));
-        const uploadedAttachments = await Promise.all(uploadPromises);
-        const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) => attachment !== undefined
+        const response = await fetch("/api/files/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const { url, pathname, contentType } = data;
+
+          return {
+            url,
+            name: pathname,
+            contentType,
+          };
+        }
+        const { error } = await response.json();
+        toast.error(error);
+      } catch (_error) {
+        toast.error("Failed to upload file, please try again!");
+      }
+    }, []);
+
+    const contextProps = useMemo(
+      () => ({
+        usage,
+      }),
+      [usage]
+    );
+
+    const handleFileChange = useCallback(
+      async (event: ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(event.target.files || []);
+
+        setUploadQueue(files.map((file) => file.name));
+
+        try {
+          const uploadPromises = files.map((file) => uploadFile(file));
+          const uploadedAttachments = await Promise.all(uploadPromises);
+          const successfullyUploadedAttachments = uploadedAttachments.filter(
+            (attachment) => attachment !== undefined
+          );
+
+          setAttachments((currentAttachments) => [
+            ...currentAttachments,
+            ...successfullyUploadedAttachments,
+          ]);
+        } catch (error) {
+          console.error("Error uploading files!", error);
+        } finally {
+          setUploadQueue([]);
+        }
+      },
+      [setAttachments, uploadFile]
+    );
+
+    const handlePaste = useCallback(
+      async (event: ClipboardEvent) => {
+        const items = event.clipboardData?.items;
+        if (!items) {
+          return;
+        }
+
+        const imageItems = Array.from(items).filter((item) =>
+          item.type.startsWith("image/")
         );
 
-        setAttachments((currentAttachments) => [
-          ...currentAttachments,
-          ...successfullyUploadedAttachments,
-        ]);
-      } catch (error) {
-        console.error("Error uploading files!", error);
-      } finally {
-        setUploadQueue([]);
-      }
-    },
-    [setAttachments, uploadFile]
-  );
+        if (imageItems.length === 0) {
+          return;
+        }
 
-  const handlePaste = useCallback(
-    async (event: ClipboardEvent) => {
-      const items = event.clipboardData?.items;
-      if (!items) {
+        // Prevent default paste behavior for images
+        event.preventDefault();
+
+        setUploadQueue((prev) => [...prev, "Pasted image"]);
+
+        try {
+          const uploadPromises = imageItems
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => file !== null)
+            .map((file) => uploadFile(file));
+
+          const uploadedAttachments = await Promise.all(uploadPromises);
+          const successfullyUploadedAttachments = uploadedAttachments.filter(
+            (attachment) =>
+              attachment !== undefined &&
+              attachment.url !== undefined &&
+              attachment.contentType !== undefined
+          );
+
+          setAttachments((curr) => [
+            ...curr,
+            ...(successfullyUploadedAttachments as Attachment[]),
+          ]);
+        } catch (error) {
+          console.error("Error uploading pasted images:", error);
+          toast.error("Failed to upload pasted image(s)");
+        } finally {
+          setUploadQueue([]);
+        }
+      },
+      [setAttachments, uploadFile]
+    );
+
+    // Add paste event listener to textarea
+    useEffect(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) {
         return;
       }
 
-      const imageItems = Array.from(items).filter((item) =>
-        item.type.startsWith("image/")
-      );
+      textarea.addEventListener("paste", handlePaste);
+      return () => textarea.removeEventListener("paste", handlePaste);
+    }, [handlePaste]);
 
-      if (imageItems.length === 0) {
-        return;
-      }
-
-      // Prevent default paste behavior for images
-      event.preventDefault();
-
-      setUploadQueue((prev) => [...prev, "Pasted image"]);
-
-      try {
-        const uploadPromises = imageItems
-          .map((item) => item.getAsFile())
-          .filter((file): file is File => file !== null)
-          .map((file) => uploadFile(file));
-
-        const uploadedAttachments = await Promise.all(uploadPromises);
-        const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) =>
-            attachment !== undefined &&
-            attachment.url !== undefined &&
-            attachment.contentType !== undefined
-        );
-
-        setAttachments((curr) => [
-          ...curr,
-          ...(successfullyUploadedAttachments as Attachment[]),
-        ]);
-      } catch (error) {
-        console.error("Error uploading pasted images:", error);
-        toast.error("Failed to upload pasted image(s)");
-      } finally {
-        setUploadQueue([]);
-      }
-    },
-    [setAttachments, uploadFile]
-  );
-
-  // Add paste event listener to textarea
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      return;
-    }
-
-    textarea.addEventListener("paste", handlePaste);
-    return () => textarea.removeEventListener("paste", handlePaste);
-  }, [handlePaste]);
-
-  return (
-    <div className={cn("relative flex w-full flex-col gap-4", className)}>
-      {messages.length === 0 &&
-        attachments.length === 0 &&
-        uploadQueue.length === 0 && (
-          <SuggestedActions
-            chatId={chatId}
-            selectedVisibilityType={selectedVisibilityType}
-            sendMessage={sendMessage}
-          />
-        )}
-
-      <input
-        className="-top-4 -left-4 pointer-events-none fixed size-0.5 opacity-0"
-        multiple
-        onChange={handleFileChange}
-        ref={fileInputRef}
-        tabIndex={-1}
-        type="file"
-      />
-
-      <PromptInput
-        className="rounded-xl border border-border bg-background p-3 shadow-xs transition-all duration-200 focus-within:border-border hover:border-muted-foreground/50"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (status !== "ready") {
-            toast.error("Please wait for the model to finish its response!");
-          } else {
-            submitForm();
-          }
-        }}
-      >
-        {(attachments.length > 0 || uploadQueue.length > 0) && (
-          <div
-            className="flex flex-row items-end gap-2 overflow-x-scroll"
-            data-testid="attachments-preview"
-          >
-            {attachments.map((attachment) => (
-              <PreviewAttachment
-                attachment={attachment}
-                key={attachment.url}
-                onRemove={() => {
-                  setAttachments((currentAttachments) =>
-                    currentAttachments.filter((a) => a.url !== attachment.url)
-                  );
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                }}
-              />
-            ))}
-
-            {uploadQueue.map((filename) => (
-              <PreviewAttachment
-                attachment={{
-                  url: "",
-                  name: filename,
-                  contentType: "",
-                }}
-                isUploading={true}
-                key={filename}
-              />
-            ))}
-          </div>
-        )}
-        <div className="flex flex-row items-start gap-1 sm:gap-2">
-          <PromptInputTextarea
-            autoFocus
-            className="grow resize-none border-0! border-none! bg-transparent p-2 text-sm outline-none ring-0 [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-scrollbar]:hidden"
-            data-testid="multimodal-input"
-            disableAutoResize={true}
-            maxHeight={200}
-            minHeight={44}
-            onChange={handleInput}
-            placeholder="Send a message..."
-            ref={textareaRef}
-            rows={1}
-            value={input}
-          />{" "}
-          <Context {...contextProps} />
-        </div>
-        <PromptInputToolbar className="!border-top-0 border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
-          <PromptInputTools className="gap-0 sm:gap-0.5">
-            <AttachmentsButton
-              fileInputRef={fileInputRef}
-              selectedModelId={selectedModelId}
-              status={status}
+    return (
+      <div className={cn("relative flex w-full flex-col gap-4", className)}>
+        {messages.length === 0 &&
+          attachments.length === 0 &&
+          uploadQueue.length === 0 && (
+            <SuggestedActions
+              chatId={chatId}
+              selectedVisibilityType={selectedVisibilityType}
+              sendMessage={sendMessage}
             />
-            <ModelSelectorCompact
-              onModelChange={onModelChange}
-              selectedModelId={selectedModelId}
-            />
-            <ToneSelectorCompact
-              onToneChange={onToneChange}
-              selectedToneId={selectedToneId}
-            />
-          </PromptInputTools>
-
-          {status === "submitted" ? (
-            <StopButton setMessages={setMessages} stop={stop} />
-          ) : (
-            <PromptInputSubmit
-              className="size-8 rounded-full bg-primary text-primary-foreground transition-colors duration-200 hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
-              data-testid="send-button"
-              disabled={!input.trim() || uploadQueue.length > 0}
-              status={status}
-            >
-              <ArrowUpIcon size={14} />
-            </PromptInputSubmit>
           )}
-        </PromptInputToolbar>
-      </PromptInput>
-    </div>
-  );
-}
+
+        <input
+          className="-top-4 -left-4 pointer-events-none fixed size-0.5 opacity-0"
+          multiple
+          onChange={handleFileChange}
+          ref={fileInputRef}
+          tabIndex={-1}
+          type="file"
+        />
+
+        <PromptInput
+          className="rounded-xl border border-border bg-background p-3 shadow-xs transition-all duration-200 focus-within:border-border hover:border-muted-foreground/50"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (status !== "ready") {
+              toast.error("Please wait for the model to finish its response!");
+            } else {
+              submitForm();
+            }
+          }}
+        >
+          {(attachments.length > 0 || uploadQueue.length > 0) && (
+            <div
+              className="flex flex-row items-end gap-2 overflow-x-scroll"
+              data-testid="attachments-preview"
+            >
+              {attachments.map((attachment) => (
+                <PreviewAttachment
+                  attachment={attachment}
+                  key={attachment.url}
+                  onRemove={() => {
+                    setAttachments((currentAttachments) =>
+                      currentAttachments.filter((a) => a.url !== attachment.url)
+                    );
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = "";
+                    }
+                  }}
+                />
+              ))}
+
+              {uploadQueue.map((filename) => (
+                <PreviewAttachment
+                  attachment={{
+                    url: "",
+                    name: filename,
+                    contentType: "",
+                  }}
+                  isUploading={true}
+                  key={filename}
+                />
+              ))}
+            </div>
+          )}
+          <div className="flex flex-row items-start gap-1 sm:gap-2">
+            <PromptInputTextarea
+              autoFocus
+              className="grow resize-none border-0! border-none! bg-transparent p-2 text-sm outline-none ring-0 [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-scrollbar]:hidden"
+              data-testid="multimodal-input"
+              disableAutoResize={true}
+              maxHeight={200}
+              minHeight={44}
+              onChange={handleInput}
+              placeholder="Send a message..."
+              ref={textareaRef}
+              rows={1}
+              value={input}
+            />{" "}
+            <Context {...contextProps} />
+          </div>
+          <PromptInputToolbar className="!border-top-0 border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
+            <PromptInputTools className="gap-0 sm:gap-0.5">
+              <AttachmentsButton
+                fileInputRef={fileInputRef}
+                selectedModelId={selectedModelId}
+                status={status}
+              />
+              <ModelSelectorCompact
+                onModelChange={onModelChange}
+                selectedModelId={selectedModelId}
+              />
+              <ToneSelectorCompact
+                onToneChange={onToneChange}
+                selectedToneId={selectedToneId}
+              />
+            </PromptInputTools>
+
+            {status === "submitted" ? (
+              <StopButton setMessages={setMessages} stop={stop} />
+            ) : (
+              <PromptInputSubmit
+                className="size-8 rounded-full bg-primary text-primary-foreground transition-colors duration-200 hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
+                data-testid="send-button"
+                disabled={!input.trim() || uploadQueue.length > 0}
+                status={status}
+              >
+                <ArrowUpIcon size={14} />
+              </PromptInputSubmit>
+            )}
+          </PromptInputToolbar>
+        </PromptInput>
+      </div>
+    );
+  }
+);
 
 export const MultimodalInput = memo(
   PureMultimodalInput,

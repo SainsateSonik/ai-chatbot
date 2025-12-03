@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
+import type { MultimodalInputHandle } from "@/components/multimodal-input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,6 +81,7 @@ export function Chat({
   const [currentToneId, setCurrentToneId] = useState(initialChatTone);
   const currentModelIdRef = useRef(currentModelId);
   const currentToneIdRef = useRef(currentToneId);
+  const multimodalInputRef = useRef<MultimodalInputHandle>(null);
 
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -179,17 +181,17 @@ export function Chat({
   const handleExplainText = useCallback(
     (text: string) => {
       sendMessage({
-        role: "user" as const,
-        parts: [
-          {
-            type: "text",
-            text: `Please explain this: "${text}"`,
-          },
-        ],
+        role: "user",
+        parts: [{ type: "text", text: `Please explain this: "${text}"` }],
       });
     },
     [sendMessage]
   );
+
+  const handleAddToPrompt = useCallback((text: string) => {
+    setInput((prevInput) => (prevInput ? `${prevInput} ${text}` : text));
+    setTimeout(() => multimodalInputRef.current?.focus(), 0);
+  }, []);
 
   return (
     <>
@@ -205,6 +207,7 @@ export function Chat({
           isArtifactVisible={isArtifactVisible}
           isReadonly={isReadonly}
           messages={messages}
+          onAddToPrompt={handleAddToPrompt}
           onExplain={handleExplainText}
           regenerate={regenerate}
           selectedModelId={initialChatModel}
@@ -222,6 +225,7 @@ export function Chat({
               messages={messages}
               onModelChange={setCurrentModelId}
               onToneChange={setCurrentToneId}
+              ref={multimodalInputRef}
               selectedModelId={currentModelId}
               selectedToneId={currentToneId}
               selectedVisibilityType={visibilityType}

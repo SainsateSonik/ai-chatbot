@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { Streamdown } from "streamdown";
-import { SparklesIcon } from "@/components/icons";
+import { PenIcon, SparklesIcon } from "@/components/icons";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,10 +19,11 @@ import { cn } from "@/lib/utils";
 
 type ResponseProps = ComponentProps<typeof Streamdown> & {
   onExplain?: (selectedText: string) => void;
+  onAddToPrompt?: (selectedText: string) => void;
 };
 
 export const Response = memo(
-  ({ className, onExplain, ...props }: ResponseProps) => {
+  ({ className, onExplain, onAddToPrompt, ...props }: ResponseProps) => {
     const [selectedText, setSelectedText] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,11 +54,19 @@ export const Response = memo(
       }
     }, [selectedText, onExplain]);
 
+    const handleAddToPrompt = useCallback(() => {
+      if (selectedText && onAddToPrompt) {
+        onAddToPrompt(selectedText);
+        setSelectedText("");
+        window.getSelection()?.removeAllRanges();
+      }
+    }, [selectedText, onAddToPrompt]);
+
     return (
       <ContextMenu>
         <ContextMenuTrigger
           asChild
-          disabled={!onExplain}
+          disabled={!onExplain && !onAddToPrompt}
           onContextMenu={handleContextMenu}
         >
           <div ref={containerRef}>
@@ -72,10 +81,18 @@ export const Response = memo(
         </ContextMenuTrigger>
         {selectedText && (
           <ContextMenuContent>
-            <ContextMenuItem className="gap-1.5" onClick={handleExplain}>
-              <SparklesIcon />
-              Explain this
-            </ContextMenuItem>
+            {onExplain && (
+              <ContextMenuItem className="gap-1.5" onClick={handleExplain}>
+                <SparklesIcon />
+                Explain this
+              </ContextMenuItem>
+            )}
+            {onAddToPrompt && (
+              <ContextMenuItem className="gap-1.5" onClick={handleAddToPrompt}>
+                <PenIcon />
+                Add to prompt
+              </ContextMenuItem>
+            )}
           </ContextMenuContent>
         )}
       </ContextMenu>
@@ -83,7 +100,8 @@ export const Response = memo(
   },
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
-    prevProps.onExplain === nextProps.onExplain
+    prevProps.onExplain === nextProps.onExplain &&
+    prevProps.onAddToPrompt === nextProps.onAddToPrompt
 );
 
 Response.displayName = "Response";

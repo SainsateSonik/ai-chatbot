@@ -8,6 +8,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -23,7 +24,10 @@ import { fetcher } from "@/lib/utils";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { ArtifactMessages } from "./artifact-messages";
-import { MultimodalInput } from "./multimodal-input";
+import {
+  MultimodalInput,
+  type MultimodalInputHandle,
+} from "./multimodal-input";
 import { Toolbar } from "./toolbar";
 import { useSidebar } from "./ui/sidebar";
 import { VersionFooter } from "./version-footer";
@@ -101,6 +105,7 @@ function PureArtifact({
   const [mode, setMode] = useState<"edit" | "diff">("edit");
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
+  const multimodalInputRef = useRef<MultimodalInputHandle>(null);
 
   const { open: isSidebarOpen } = useSidebar();
 
@@ -125,6 +130,24 @@ function PureArtifact({
 
   const { mutate } = useSWRConfig();
   const [isContentDirty, setIsContentDirty] = useState(false);
+
+  const handleExplainText = useCallback(
+    (text: string) => {
+      sendMessage({
+        role: "user",
+        parts: [{ type: "text", text: `Please explain this: "${text}"` }],
+      });
+    },
+    [sendMessage]
+  );
+
+  const handleAddToPrompt = useCallback(
+    (text: string) => {
+      setInput((prevInput) => (prevInput ? `${prevInput} ${text}` : text));
+      setTimeout(() => multimodalInputRef.current?.focus(), 0);
+    },
+    [setInput]
+  );
 
   const handleContentChange = useCallback(
     (updatedContent: string) => {
@@ -324,6 +347,8 @@ function PureArtifact({
                   chatId={chatId}
                   isReadonly={isReadonly}
                   messages={messages}
+                  onAddToPrompt={handleAddToPrompt}
+                  onExplain={handleExplainText}
                   regenerate={regenerate}
                   setMessages={setMessages}
                   status={status}
@@ -336,6 +361,7 @@ function PureArtifact({
                     chatId={chatId}
                     input={input}
                     messages={messages}
+                    ref={multimodalInputRef}
                     selectedModelId={selectedModelId}
                     selectedVisibilityType={selectedVisibilityType}
                     sendMessage={sendMessage}

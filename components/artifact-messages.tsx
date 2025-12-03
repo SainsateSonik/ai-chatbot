@@ -17,6 +17,8 @@ type ArtifactMessagesProps = {
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
   artifactStatus: UIArtifact["status"];
+  onExplain?: (selectedText: string) => void;
+  onAddToPrompt?: (selectedText: string) => void;
 };
 
 function PureArtifactMessages({
@@ -27,6 +29,8 @@ function PureArtifactMessages({
   setMessages,
   regenerate,
   isReadonly,
+  onExplain,
+  onAddToPrompt,
 }: ArtifactMessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -50,6 +54,8 @@ function PureArtifactMessages({
           isReadonly={isReadonly}
           key={message.id}
           message={message}
+          onAddToPrompt={onAddToPrompt}
+          onExplain={onExplain}
           regenerate={regenerate}
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
@@ -98,6 +104,12 @@ function areEqual(
     return false;
   }
   if (!equal(prevProps.votes, nextProps.votes)) {
+    return false;
+  }
+  if (prevProps.onExplain !== nextProps.onExplain) {
+    return false;
+  }
+  if (prevProps.onAddToPrompt !== nextProps.onAddToPrompt) {
     return false;
   }
 

@@ -34,6 +34,7 @@ const PurePreviewMessage = ({
   isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
   onExplain,
+  onAddToPrompt,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -44,9 +45,11 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
   requiresScrollPadding: boolean;
   onExplain?: (selectedText: string) => void;
+  onAddToPrompt?: (selectedText: string) => void;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
+  const isAssistant = message.role === "assistant";
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file"
   );
@@ -62,10 +65,10 @@ const PurePreviewMessage = ({
       <div
         className={cn("flex w-full items-start gap-2 md:gap-3", {
           "justify-end": message.role === "user" && mode !== "edit",
-          "justify-start": message.role === "assistant",
+          "justify-start": isAssistant,
         })}
       >
-        {message.role === "assistant" && (
+        {isAssistant && (
           <div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border">
             <SparklesIcon size={14} />
           </div>
@@ -77,7 +80,7 @@ const PurePreviewMessage = ({
               (p) => p.type === "text" && p.text?.trim()
             ),
             "w-full":
-              (message.role === "assistant" &&
+              (isAssistant &&
                 message.parts?.some(
                   (p) => p.type === "text" && p.text?.trim()
                 )) ||
@@ -126,8 +129,7 @@ const PurePreviewMessage = ({
                       className={cn({
                         "w-fit break-words rounded-2xl px-3 py-2 text-right text-white":
                           message.role === "user",
-                        "bg-transparent px-0 py-0 text-left":
-                          message.role === "assistant",
+                        "bg-transparent px-0 py-0 text-left": isAssistant,
                       })}
                       data-testid="message-content"
                       style={
@@ -136,7 +138,10 @@ const PurePreviewMessage = ({
                           : undefined
                       }
                     >
-                      <Response onExplain={message.role === "assistant" ? onExplain : undefined}>
+                      <Response
+                        onAddToPrompt={isAssistant ? onAddToPrompt : undefined}
+                        onExplain={isAssistant ? onExplain : undefined}
+                      >
                         {sanitizeText(part.text)}
                       </Response>
                     </MessageContent>
@@ -305,6 +310,9 @@ export const PreviewMessage = memo(
       return false;
     }
     if (prevProps.onExplain !== nextProps.onExplain) {
+      return false;
+    }
+    if (prevProps.onAddToPrompt !== nextProps.onAddToPrompt) {
       return false;
     }
 
