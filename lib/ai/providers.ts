@@ -21,7 +21,7 @@ export const myProvider = isTestEnvironment
     })()
   : customProvider({
       languageModels: {
-        "chat-model": openai("gpt-5-nano"),
+        "chat-model": openai("gpt-4o"),
         "chat-model-reasoning": openai("gpt-5-mini"),
         "title-model": openai("gpt-5-nano"),
         "artifact-model": openai("gpt-4o"),
